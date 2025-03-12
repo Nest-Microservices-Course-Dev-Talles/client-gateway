@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 // import { CreateOrderDto } from './dto/create-order.dto';
 // import { UpdateOrderDto } from './dto/update-order.dto';
-import { ORDER_SERVICE } from 'src/config';
+import { NATS_SERVICE, ORDER_SERVICE } from 'src/config';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { catchError, firstValueFrom } from 'rxjs';
 import { CreateOrderDto, OrderPaginationDto } from './dto';
@@ -21,13 +21,13 @@ import { StatusDto } from './dto/status.dto';
 @Controller('orders')
 export class OrdersController {
   constructor(
-    @Inject(ORDER_SERVICE)
-    private readonly ordersClient: ClientProxy,
+    @Inject(NATS_SERVICE)
+    private readonly client: ClientProxy,
   ) {}
 
   @Post()
   create(@Body() createOrderDto: CreateOrderDto) {
-    return this.ordersClient.send('createOrder', createOrderDto).pipe(
+    return this.client.send('createOrder', createOrderDto).pipe(
       catchError((err) => {
         throw new RpcException(err);
       }),
@@ -36,7 +36,7 @@ export class OrdersController {
 
   @Get()
   findAll(@Query() orderPaginationDto: OrderPaginationDto) {
-    return this.ordersClient.send('findAllOrders', orderPaginationDto).pipe(
+    return this.client.send('findAllOrders', orderPaginationDto).pipe(
       catchError((err) => {
         throw new RpcException(err);
       }),
@@ -46,9 +46,7 @@ export class OrdersController {
   @Get('id/:id')
   async findOne(@Param('id', ParseUUIDPipe) id: string) {
     try {
-      const order = await firstValueFrom(
-        this.ordersClient.send('findOneOrder', id),
-      );
+      const order = await firstValueFrom(this.client.send('findOneOrder', id));
       return order;
     } catch (error) {
       throw new RpcException(error);
@@ -63,7 +61,7 @@ export class OrdersController {
   ) {
     try {
       const order = await firstValueFrom(
-        this.ordersClient.send('findAllOrders', {
+        this.client.send('findAllOrders', {
           ...paginationDto,
           status: statusDto.status,
         }),
@@ -77,7 +75,7 @@ export class OrdersController {
   @Patch(':id')
   update(@Param('id', ParseUUIDPipe) id: string, @Body() statusDto: StatusDto) {
     try {
-      return this.ordersClient.send('changeOrderStatus', {
+      return this.client.send('changeOrderStatus', {
         id,
         status: statusDto.status,
       });
