@@ -35,12 +35,20 @@ export class OrdersController {
   }
 
   @Get()
-  findAll(@Query() orderPaginationDto: OrderPaginationDto) {
-    return this.client.send('findAllOrders', orderPaginationDto).pipe(
-      catchError((err) => {
-        throw new RpcException(err);
-      }),
-    );
+  async findAll(@Query() orderPaginationDto: OrderPaginationDto) {
+    try {
+      const orders = firstValueFrom(
+        await this.client.send('findAllOrders', orderPaginationDto),
+      );
+      return orders;
+    } catch (error) {
+      throw new RpcException(error);
+    }
+    // return this.client.send('findAllOrders', orderPaginationDto).pipe(
+    //   catchError((err) => {
+    //     throw new RpcException(err);
+    //   }),
+    // );
   }
 
   @Get('id/:id')
@@ -50,7 +58,6 @@ export class OrdersController {
       return order;
     } catch (error) {
       throw new RpcException(error);
-      //   }),
     }
   }
 
